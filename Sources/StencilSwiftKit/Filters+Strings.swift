@@ -382,3 +382,67 @@ private extension Filters.Strings {
     return "`\(string)`"
   }
 }
+
+extension Filters.Strings {
+    static func namedPropertyFunction(_ value: Any?, arguments: [Any?]) throws -> Any? {
+        let value = try Filters.parseString(from: value)
+        let key = try Filters.parseStringArgument(from: arguments, at: 0)
+        
+        var parameterNamesWithRange: [(name: String, range: NSRange)] = []
+        var excludedRanges: [NSRange] = []
+
+        // Find matches for plural placeholders and mark their ranges for exclusion
+        let pluralPattern = "\\{\\{([a-zA-Z0-9_]+)\\}.*?\\}\\}"
+        if let regexPlural = try? NSRegularExpression(pattern: pluralPattern) {
+            let nsRange = NSRange(value.startIndex..<value.endIndex, in: value)
+            regexPlural.enumerateMatches(in: value, options: [], range: nsRange) { match, _, _ in
+                if let matchRange = match?.range(at: 0) {
+                    excludedRanges.append(matchRange)
+                }
+                if let matchRange = match?.range(at: 1), let swiftRange = Range(matchRange, in: value) {
+                    let parameterName = String(value[swiftRange])
+                    let nsMatchRange = NSRange(swiftRange, in: value)
+                    if !parameterNamesWithRange.contains(where: {$0.name == parameterName}) {
+                        parameterNamesWithRange.append((name: parameterName, range: nsMatchRange))
+                    }
+                }
+            }
+        }
+        
+        // Custom function to check if two NSRanges intersect
+        func rangesIntersect(_ range1: NSRange, _ range2: NSRange) -> Bool {
+            return NSIntersectionRange(range1, range2).length > 0
+        }
+        
+        // Find matches for singular placeholders, excluding matches within plural ranges
+        let singularPattern = "\\{([a-zA-Z0-9_]+)\\}"
+        if let regexSingular = try? NSRegularExpression(pattern: singularPattern) {
+            let nsRange = NSRange(value.startIndex..<value.endIndex, in: value)
+            regexSingular.enumerateMatches(in: value, options: [], range: nsRange) { match, _, _ in
+                if let matchRange = match?.range(at: 1), let swiftRange = Range(matchRange, in: value) {
+                    let nsMatchRange = NSRange(swiftRange, in: value)
+                    let parameterName = String(value[swiftRange])
+                    
+                    // Check if the singular match is within any of the excluded plural ranges
+                    let isExcluded = excludedRanges.contains { rangesIntersect($0, nsMatchRange) }
+                    if !isExcluded && !parameterNamesWithRange.contains(where: {$0.name == parameterName}) {
+                        parameterNamesWithRange.append((name: parameterName, range: nsMatchRange))
+                    }
+                }
+            }
+        }
+
+        // Sort parameter names by their range location to maintain the order of appearance
+        let sortedParameterNames = parameterNamesWithRange.sorted(by: { $0.range.location < $1.range.location }).map { $0.name }
+
+        // Generate the function signature
+        let quotedKey = "\"\(key)\""
+        if sortedParameterNames.isEmpty {
+            return "static var localized: String { \(quotedKey).localized() }"
+        } else {
+            let functionParameters = sortedParameterNames.map { "\($0): String" }.joined(separator: ", ")
+            let parametersArray = sortedParameterNames.joined(separator: ",")
+            return "static func localized(\(functionParameters)) -> String { \(quotedKey).localized(parameters: [\(parametersArray)]) }"
+        }
+    }
+}

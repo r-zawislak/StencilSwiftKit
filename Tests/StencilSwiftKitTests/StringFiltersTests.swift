@@ -530,3 +530,12 @@ extension StringFiltersTests {
     }
   }
 }
+
+extension StringFiltersTests {
+    func testNamedPropertyFunction() throws {
+        let value = "{test1} {{test2} {xd}} {test3} {{test4} {empty} {empty} {empty}} {test5} {{test4} {empty}} {test6} {{test4} {empty}}"
+        let key = "testKey"
+        let result = try Filters.Strings.namedPropertyFunction(value, arguments: [key]) as? String
+        XCTAssertEqual(result, "static func localized(test1: String, test2: String, test3: String, test4: String, test5: String, test6: String) -> String { \"testKey\".localized(parameters: [test1,test2,test3,test4,test5,test6]) }")
+    }
+}

@@ -48,6 +48,7 @@ private extension Extension {
     registerFilter("contains", filter: Filters.Strings.contains)
     registerFilter("hasPrefix", filter: Filters.Strings.hasPrefix)
     registerFilter("hasSuffix", filter: Filters.Strings.hasSuffix)
+    registerFilter("namedPropertyFunction", filter: Filters.Strings.namedPropertyFunction)
   }
 
   func registerTags() {
