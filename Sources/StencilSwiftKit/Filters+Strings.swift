@@ -383,7 +383,7 @@ private extension Filters.Strings {
   }
 }
 
-extension Filters.Strings {
+public extension Filters.Strings {
     static func namedPropertyFunction(_ value: Any?, arguments: [Any?]) throws -> Any? {
         let value = try Filters.parseString(from: value)
         let key = try Filters.parseStringArgument(from: arguments, at: 0)
