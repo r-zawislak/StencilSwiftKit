@@ -440,7 +440,7 @@ public extension Filters.Strings {
         if sortedParameterNames.isEmpty {
             return "static var localized: String { \(quotedKey).localized() }"
         } else {
-            let functionParameters = sortedParameterNames.map { "\($0): String" }.joined(separator: ", ")
+            let functionParameters = sortedParameterNames.map { "\($0): LosslessStringConvertible" }.joined(separator: ", ")
             let parametersArray = sortedParameterNames.joined(separator: ",")
             return "static func localized(\(functionParameters)) -> String { \(quotedKey).localized(parameters: [\(parametersArray)]) }"
         }
